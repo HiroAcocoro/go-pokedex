@@ -5,12 +5,20 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	pokeapi "github.com/HiroAcocoro/go-pokedex/internal/api"
 )
 
 type cliCommand struct {
 	name        string
 	description string
-	callback    func() error
+	callback    func(*config) error
+}
+
+type config struct {
+	pokeapiClient       pokeapi.Client
+	nextLocationAreaURL *string
+	prevLocationAreaURL *string
 }
 
 func getCommands() map[string]cliCommand {
@@ -25,6 +33,16 @@ func getCommands() map[string]cliCommand {
 			description: "Exit the Pokedex",
 			callback:    commandExit,
 		},
+		"map": {
+			name:        "map",
+			description: "List location areas",
+			callback:    callbackMap,
+		},
+		"mapb": {
+			name:        "mapb",
+			description: "List previous location ares",
+			callback:    callbackMapb,
+		},
 	}
 }
 func printPrompt() {
@@ -37,16 +55,19 @@ func sanitizeInput(input string) string {
 	return output
 }
 
-func commandSelector(cmd string) {
+func commandSelector(cmd string, cfg *config) {
 	commands := getCommands()
 	if command, ok := commands[cmd]; ok {
-		command.callback()
+		err := command.callback(cfg)
+		if err != nil {
+			fmt.Println(err)
+		}
 	} else {
 		fmt.Println("Uknown command. Type 'help' for a list of avaialable commands.")
 	}
 }
 
-func commandHelp() error {
+func commandHelp(cfg *config) error {
 	commands := getCommands()
 	fmt.Println("Welcome to the Pokedex!\nUsage:\n\n")
 	for _, cmd := range commands {
@@ -56,13 +77,16 @@ func commandHelp() error {
 	return nil
 }
 
-func commandExit() error {
+func commandExit(cfg *config) error {
 	fmt.Println("Exiting the Pokedex. Goodbye!")
 	os.Exit(0)
 	return nil
 }
 
 func main() {
+	cfg := config{
+		pokeapiClient: pokeapi.NewClient(),
+	}
 	reader := bufio.NewScanner(os.Stdin)
 
 	for {
@@ -72,7 +96,7 @@ func main() {
 		}
 
 		cmd := sanitizeInput(reader.Text())
-		commandSelector(cmd)
+		commandSelector(cmd, &cfg)
 	}
 
 }
