@@ -11,13 +11,13 @@ func printPrompt() {
 	fmt.Print("pokedex >")
 }
 
-func sanitizeInput(input string) string {
-	output := strings.TrimSpace(input)
-	output = strings.ToLower(output)
-	return output
+func sanitizeInput(input string) []string {
+	output := strings.ToLower(input)
+	words := strings.Fields(output)
+	return words
 }
 
-func commandSelector(cmd string, cfg *config) {
+func commandSelector(cmd string, cfg *config, args ...string) {
 	commands := getCommands()
 
 	command, ok := commands[cmd]
@@ -26,7 +26,7 @@ func commandSelector(cmd string, cfg *config) {
 		return
 	}
 
-	err := command.callback(cfg)
+	err := command.callback(cfg, args...)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -40,7 +40,17 @@ func startPokeRepl(cfg *config) {
 			break
 		}
 
-		cmd := sanitizeInput(reader.Text())
-		commandSelector(cmd, cfg)
+		cleanCmd := sanitizeInput(reader.Text())
+
+		if len(cleanCmd) == 0 {
+			continue
+		}
+
+		cmd := cleanCmd[0]
+		args := []string{}
+		if len(cleanCmd) > 1 {
+			args = cleanCmd[1:]
+		}
+		commandSelector(cmd, cfg, args...)
 	}
 }
